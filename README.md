@@ -17,11 +17,11 @@ This contains an annotated bibliography and a literature review examining the ro
 - **BERT for radiological classification**: (["The Utility of General Domain Transfer Learning for Medical Language Tasks"(Ranti et al.)](https://arxiv.org/abs/2002.06670)).
 
 ### Adversarial Papers
-- **textfooler**: Rule-based Adversarial Attacks (["Is Bert Really Robust?" (Jin et al., 2019)](https://arxiv.org/abs/1907.11932)).
+- **TextFooler**: Rule-based Adversarial Attacks (["Is Bert Really Robust?" (Jin et al., 2019)](https://arxiv.org/abs/1907.11932)).
 
--  **bae**: BERT masked language model turned against itself (["BAE: BERT-based Adversarial Examples for Text Classification" (Garg & Ramakrishnan, 2019)](https://arxiv.org/abs/2004.01970)).
+-  **BAE**: BERT masked language model turned against itself (["BAE: BERT-based Adversarial Examples for Text Classification" (Garg & Ramakrishnan, 2019)](https://arxiv.org/abs/2004.01970)).
 
-- **bert-attack**: BERT masked language model transformation with subword replacement strategy (["BERT-ATTACK: Adversarial Attack Against BERT Using BERT" (Li et al., 2020)](https://arxiv.org/abs/2004.09984)).
+- **Bert-Attack**: BERT masked language model transformation with subword replacement strategy (["BERT-ATTACK: Adversarial Attack Against BERT Using BERT" (Li et al., 2020)](https://arxiv.org/abs/2004.09984)).
 
 ### How to improve BERT
 - **Examining underneath BERT's hood**: (["How to Fine-Tune BERT for Text Classification?"(Sun et al.)](https://arxiv.org/abs/1905.05583)).
