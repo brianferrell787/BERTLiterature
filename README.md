@@ -7,7 +7,7 @@ This contains an annotated bibliography and a literature review examining the ro
 - **BERT vs. ML**: (["Comparing BERT against traditional machine learning text classification"(Gonzales et al.)](https://arxiv.org/abs/2005.13012)).
 
 - **BERT vs. ML for small datasets**: (["Low-Shot Classification: A Comparison of Classical and Deep Transfer Machine Learning Approaches"(Usherwood et al.)](https://arxiv.org/abs/1907.07543)).
-- **BERT for drug reviews**: (["10.	Comparing deep learning architectures for sentiment analysis on drug reviews"(Colon et al.)](https://www.sciencedirect.com/science/article/pii/S1532046420301672?casa_token=y_yrQlPLUo4AAAAA:TU4SWv2AXialGiaYbkJbEC7oaUD76N63CM1Q4wNxV05iiC7_VUvoVHZbyqesEeNxWFDzkxTU)).
+- **BERT for drug reviews**: (["Comparing deep learning architectures for sentiment analysis on drug reviews"(Colon et al.)](https://www.sciencedirect.com/science/article/pii/S1532046420301672?casa_token=y_yrQlPLUo4AAAAA:TU4SWv2AXialGiaYbkJbEC7oaUD76N63CM1Q4wNxV05iiC7_VUvoVHZbyqesEeNxWFDzkxTU)).
 
 - **BERT for Alzheimer's Disease Detection**: (["To BERT or Not To BERT: Comparing Speech and Language-based Approaches for Alzheimer's Disease Detection"(Balagopalan et al.)](https://arxiv.org/abs/2008.01551)).
 
