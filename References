@@ -1,0 +1,80 @@
+@article{gonzalez2020comparing,
+  title={Comparing BERT against traditional machine learning text classification},
+  author={Gonz{\'a}lez-Carvajal, Santiago and Garrido-Merch{\'a}n, Eduardo C},
+  journal={arXiv preprint arXiv:2005.13012},
+  year={2020}
+}
+@article{usherwood2019low,
+  title={Low-Shot Classification: A Comparison of Classical and Deep Transfer Machine Learning Approaches},
+  author={Usherwood, Peter and Smit, Steven},
+  journal={arXiv preprint arXiv:1907.07543},
+  year={2019}
+}
+@inproceedings{sun2019fine,
+  title={How to fine-tune bert for text classification?},
+  author={Sun, Chi and Qiu, Xipeng and Xu, Yige and Huang, Xuanjing},
+  booktitle={China National Conference on Chinese Computational Linguistics},
+  pages={194--206},
+  year={2019},
+  organization={Springer}
+}
+@article{alsentzer2019publicly,
+  title={Publicly available clinical BERT embeddings},
+  author={Alsentzer, Emily and Murphy, John R and Boag, Willie and Weng, Wei-Hung and Jin, Di and Naumann, Tristan and McDermott, Matthew},
+  journal={arXiv preprint arXiv:1904.03323},
+  year={2019}
+}
+@article{lan2019albert,
+  title={Albert: A lite bert for self-supervised learning of language representations},
+  author={Lan, Zhenzhong and Chen, Mingda and Goodman, Sebastian and Gimpel, Kevin and Sharma, Piyush and Soricut, Radu},
+  journal={arXiv preprint arXiv:1909.11942},
+  year={2019}
+}
+@article{jin2019bert,
+  title={Is BERT Really Robust? A Strong Baseline for Natural Language Attack on Text Classification and Entailment},
+  author={Jin, Di and Jin, Zhijing and Tianyi Zhou, Joey and Szolovits, Peter},
+  journal={arXiv},
+  pages={arXiv--1907},
+  year={2019}
+}
+@article{garg2020bae,
+  title={BAE: BERT-based Adversarial Examples for Text Classification},
+  author={Garg, Siddhant and Ramakrishnan, Goutham},
+  journal={arXiv preprint arXiv:2004.01970},
+  year={2020}
+}
+@article{li2020bert,
+  title={Bert-attack: Adversarial attack against bert using bert},
+  author={Li, Linyang and Ma, Ruotian and Guo, Qipeng and Xue, Xiangyang and Qiu, Xipeng},
+  journal={arXiv preprint arXiv:2004.09984},
+  year={2020}
+}
+@article{ranti2020utility,
+  title={The Utility of General Domain Transfer Learning for Medical Language Tasks},
+  author={Ranti, Daniel and Hanss, Katie and Zhao, Shan and Arvind, Varun and Titano, Joseph and Costa, Anthony and Oermann, Eric},
+  journal={arXiv preprint arXiv:2002.06670},
+  year={2020}
+}
+@article{colon2020comparing,
+  title={Comparing deep learning architectures for sentiment analysis on drug reviews},
+  author={Col{\'o}n-Ruiz, Crist{\'o}bal and Segura-Bedmar, Isabel},
+  journal={Journal of Biomedical Informatics},
+  volume={110},
+  pages={103539},
+  year={2020},
+  publisher={Elsevier}
+}
+@article{balagopalan2020bert,
+  title={To BERT or Not To BERT: Comparing Speech and Language-based Approaches for Alzheimer's Disease Detection},
+  author={Balagopalan, Aparna and Eyre, Benjamin and Rudzicz, Frank and Novikova, Jekaterina},
+  journal={arXiv preprint arXiv:2008.01551},
+  year={2020}
+}
+@article{zinovyeva2020antisocial,
+  title={Antisocial online behavior detection using deep learning},
+  author={Zinovyeva, Elizaveta and H{\"a}rdle, Wolfgang Karl and Lessmann, Stefan},
+  journal={Decision Support Systems},
+  pages={113362},
+  year={2020},
+  publisher={Elsevier}
+}
