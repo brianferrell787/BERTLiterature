@@ -1,6 +1,8 @@
 # BERTLiterature
 This contains an annotated bibliography and a literature review examining the robustness of BERT for text classification tasks and how to improve it. This stuff is pretty cool to me and I am still slowly learning, so maybe these resources can help you out with your own NLP text classification tasks! [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+Youtube overview here: https://www.youtube.com/watch?v=BhAR-IW2B4E
+
 ## Papers used 
 
 ### BERT versus other methods
