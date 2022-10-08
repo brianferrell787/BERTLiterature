@@ -3,7 +3,7 @@ This contains an annotated bibliography and a literature review examining the ro
 
 ## Papers used 
 
-### BERT verus other methods
+### BERT versus other methods
 - **BERT vs. ML**: (["Comparing BERT against traditional machine learning text classification"(Gonzales et al.)](https://arxiv.org/abs/2005.13012)).
 
 - **BERT vs. ML for small datasets**: (["Low-Shot Classification: A Comparison of Classical and Deep Transfer Machine Learning Approaches"(Usherwood et al.)](https://arxiv.org/abs/1907.07543)).
