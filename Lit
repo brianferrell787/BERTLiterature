@@ -1,0 +1,72 @@
+\documentclass{article}
+\usepackage{amsmath}
+
+\begin{document}
+
+\section*{Outlier/Cluster Detection Algorithm for Bank 10-K Items (Updated)}
+
+\textbf{Algorithm 1: Outlier/Cluster Detection Algorithm for Bank 10-K Items (Full Scope)}
+
+\begin{enumerate}
+    \item \textbf{Input:}
+    \begin{itemize}
+        \item Item $i$ (e.g., ``Item 3: Legal Proceedings'') for bank $j$ over years $t = 1, \dots, T$.
+    \end{itemize}
+    
+    \item \textbf{Output:}
+    \begin{itemize}
+        \item Continuous outlier and cluster scores normalized by holding company asset size.
+    \end{itemize}
+    
+    \item \textbf{For each} $t$ in years $T$:
+    \begin{enumerate}
+        \item Extract text $I_{i,j,t}$ for Item $i$ of bank $j$ at time $t$.
+        \item Split $I_{i,j,t}$ into semantic chunks of size $n$ or paragraphs.
+        \item Clean $I_{i,j,t}$ by removing stopwords and preprocessing text.
+        \item Build a topic model using BERTopic:
+        \begin{itemize}
+            \item Generate topics $k$ and topic embeddings $v_{k}$ for each chunk.
+            \item Apply hierarchical clustering on topic embeddings to reduce dimensionality:
+            \begin{itemize}
+                \item Group similar topics into higher-level parent topics.
+                \item Select parent topics based on hierarchical levels or topic coverage.
+            \end{itemize}
+        \end{itemize}
+        \item Compute topic distributions $D_{i,j,t}$ as percentages rather than counts:
+        \begin{itemize}
+            \item Normalize counts of topics for each bank $j$ by total topic occurrences in year $t$.
+            \item Optionally compute weighted topic distributions based on order of topic discussion.
+        \end{itemize}
+    \end{enumerate}
+    \item \textbf{End for.}
+    
+    \item Aggregate topic distributions over years and compute embeddings $v_{i,j}$ for each bank:
+    \begin{itemize}
+        \item Use embeddings of topic distributions as input data.
+    \end{itemize}
+    
+    \item Apply outlier and clustering detection on $v_{i,j}$:
+    \begin{enumerate}
+        \item Apply KMeans clustering to determine optimal clusters $k$ using silhouette score.
+        \item Test for multivariate normality of $v_{i,j}$:
+        \begin{itemize}
+            \item \textbf{If normality is True:}
+            \begin{itemize}
+                \item Apply robust Mahalanobis distance using Minimum Covariance Determinant (MCD).
+                \item Apply Local Outlier Factor (LOF) on $v_{i,j}$.
+                \item Flag points as outliers if identified by both Mahalanobis distance and LOF.
+            \end{itemize}
+            \item \textbf{Else:}
+            \begin{itemize}
+                \item Apply LOF only, as Mahalanobis distance assumes normality.
+            \end{itemize}
+        \end{itemize}
+    \end{enumerate}
+    
+    \item Convert discrete outlier and cluster outputs into continuous scores.
+    \item Normalize outlier and cluster scores by holding company asset size.
+\end{enumerate}
+
+\textbf{End Algorithm.}
+
+\end{document}
