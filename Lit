@@ -1,123 +1,49 @@
-\documentclass{article}
+\documentclass[10pt]{article}
+\usepackage[margin=1in]{geometry}
 \usepackage{algorithm}
-\usepackage{algorithmic}
-
-\begin{document}
-
-\section*{Algorithm: Outlier/Cluster Detection with Topic Distributions}
-
-\begin{algorithm}
-\caption{Outlier/Cluster Detection Algorithm for Bank 10-K Items}
-\begin{algorithmic}[1]
-\REQUIRE Text data for Item $i$ of bank $j$ over years $t = 1, \dots, T$.
-\ENSURE Continuous outlier and cluster scores normalized by holding company asset size.
-
-\FORALL{years $t \in \{1, \dots, T\}$}
-    \FORALL{banks $j$}
-        \STATE Extract text $I_{i,j,t}$ for Item $i$ of bank $j$ at year $t$.
-        \STATE Split $I_{i,j,t}$ into semantic chunks or paragraphs.
-        \STATE Clean $I_{i,j,t}$ by removing stopwords and performing preprocessing.
-        \STATE Build topic model using BERTopic:
-        \begin{enumerate}
-            \item Generate topics $k$ and embeddings $v_{k}$ for each chunk.
-            \item Apply hierarchical clustering to group topics into parent topics.
-            \item Select parent topics based on hierarchical levels or topic coverage.
-        \end{enumerate}
-        \STATE Compute topic distributions $D_{i,j,t}$ as percentages:
-        \begin{enumerate}
-            \item Normalize counts of topics by total topic occurrences in year $t$.
-            \item Optionally compute weighted topic distributions based on order of topics discussed.
-        \end{enumerate}
-    \ENDFOR
-\ENDFOR
-
-\STATE Aggregate topic distributions $D_{i,j,t}$ over all years $t$ for each bank $j$.
-
-\STATE Compute embedding matrix $V_{i,j}$ using aggregated topic distributions.
-
-\STATE Apply clustering and outlier detection:
-\begin{enumerate}
-    \item Use KMeans clustering to determine optimal clusters $k$ using silhouette score.
-    \item Test for multivariate normality of $V_{i,j}$:
-    \begin{itemize}
-        \item \textbf{If normality is True:}
-        \begin{enumerate}
-            \item Apply robust Mahalanobis distance using Minimum Covariance Determinant (MCD).
-            \item Apply Local Outlier Factor (LOF).
-            \item Flag points as outliers if identified by both Mahalanobis distance and LOF.
-        \end{enumerate}
-        \item \textbf{Else:}
-        \begin{enumerate}
-            \item Apply only LOF for outlier detection.
-        \end{enumerate}
-    \end{itemize}
-\end{enumerate}
-
-\STATE Convert discrete outlier and cluster outputs into continuous scores.
-\STATE Normalize outlier and cluster scores by holding company asset size.
-
-\RETURN Continuous outlier and cluster scores.
-
-\end{algorithmic}
-\end{algorithm}
-
-\end{document}
-
-
-
-
-
-
-\documentclass[11pt]{article}
-\usepackage{algorithm2e}
+\usepackage{algpseudocode}
 \usepackage{amsmath}
 
 \begin{document}
 
-\section*{Algorithm: Topic Distribution and Outlier Detection}
+\floatname{algorithm}{Algorithm}
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
 
-\begin{algorithm}[H]
-\SetAlgoLined
-\KwIn{
-    SEC Filing Item \(i\) (e.g., "Item 1A: Risk Factors"), 
-    Financial Institution \(j\), 
-    Reporting Years \(t = 1, 2, \ldots, T\)
-}
-\KwOut{Clustered topics and detected outliers for Item \(i\) for each institution \(j\)}
-
-\For{each year \(t\)}{
-    Extract text \(I_{i,j,t}\) for Item \(i\) of institution \(j\) at time \(t\)\;
-    Split \(I_{i,j,t}\) into semantic chunks using a semantic chunker\;
-    Build a topic model \(T\) using BERTopic\;
-    Run hierarchical clustering on \(T\) to reduce the dimensionality of topics\;
-    Create topic distributions \(D_{i,j,t}\) (as percentages, not counts) per chunk\;
-}
-
-\For{each institution \(j\)}{
-    Aggregate \(D_{i,j,t}\) across years to create temporal vectors\;
-    Standardize distributions using a robust scaler\;
-    Apply PCA to reduce dimensionality while retaining 95\% variance\;
-    Apply KMeans clustering to determine \(k\), the optimal number of clusters, using silhouette scores\;
-    Test for multivariate normality of the PCA-reduced vectors\;
-    
-    \eIf{normality is \textbf{True}}{
-        Apply robust Mahalanobis distance using Minimum Covariance Determinant (MCD)\;
-        Apply Local Outlier Factor (LOF)\;
-        Flag outliers if identified by more than one method\;
-    }{
-        Apply only LOF for outlier detection\;
-    }
-}
-
-\If{the topic order is relevant (e.g., Risk Factors)}{
-    Create weighted topic distributions \(W_{i,j,t}\) based on the order of discussion\;
-}
-
-Normalize final scores to account for holding company size (e.g., total assets)\;
-
-Convert outlier detection and clustering results into continuous scores for risk assessment\;
-
-\caption{Topic Distribution and Outlier Detection Algorithm}
+\begin{algorithm}
+\caption{Outlier and Clustering Detection for Bank Topic Distributions}
+\begin{algorithmic}[1]
+\Require 
+    \begin{itemize}
+        \item $I$: Set of SEC filing items (e.g., "Risk Factors", "Item 7")
+        \item $j$: Set of banks
+        \item $t \in T$: Years
+    \end{itemize}
+\Ensure 
+    Outlier and cluster detection scores for topic distributions across banks in each year.
+\For {each item $i \in I$}
+    \State Construct a topic model $M_i$ for $i$ using BERTopic.
+    \State Perform hierarchical clustering on $M_i$ to reduce dimensionality by grouping topics into parent topics.
+    \State For each year $t$, compute topic distributions for all banks $j \in J$:
+    \State \hspace{\algorithmicindent} Split texts into chunks using semantic or paragraph chunking.
+    \State \hspace{\algorithmicindent} Assign each chunk to a topic from the reduced topic hierarchy.
+    \State \hspace{\algorithmicindent} Calculate the percentage distribution of topics for each bank.
+\EndFor
+\For {each year $t \in T$}
+    \State Extract the topic distribution vectors $v_{j,t}$ for all banks $j$.
+    \State Normalize $v_{j,t}$ using a robust scaler to handle extreme values.
+    \State Apply dimensionality reduction (e.g., PCA) to $v_{j,t}$ while retaining at least 95\% of variance.
+    \State Perform $k$-means clustering on reduced vectors $v_{j,t}^{PCA}$ to determine clusters with the optimal silhouette score.
+    \State Test $v_{j,t}^{PCA}$ for multivariate normality.
+    \If {normality is \textbf{True}}
+        \State Apply robust Mahalanobis distance to identify potential outliers.
+        \State Apply Local Outlier Factor (LOF) to enhance detection accuracy.
+        \State Flag a point as an outlier if it is identified by both Mahalanobis distance and LOF.
+    \Else
+        \State Apply LOF only, as Mahalanobis distance assumes normality.
+    \EndIf
+\EndFor
+\end{algorithmic}
 \end{algorithm}
 
 \end{document}
