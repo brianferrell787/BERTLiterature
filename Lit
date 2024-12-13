@@ -62,3 +62,62 @@
 \end{algorithm}
 
 \end{document}
+
+
+
+
+
+
+\documentclass[11pt]{article}
+\usepackage{algorithm2e}
+\usepackage{amsmath}
+
+\begin{document}
+
+\section*{Algorithm: Topic Distribution and Outlier Detection}
+
+\begin{algorithm}[H]
+\SetAlgoLined
+\KwIn{
+    SEC Filing Item \(i\) (e.g., "Item 1A: Risk Factors"), 
+    Financial Institution \(j\), 
+    Reporting Years \(t = 1, 2, \ldots, T\)
+}
+\KwOut{Clustered topics and detected outliers for Item \(i\) for each institution \(j\)}
+
+\For{each year \(t\)}{
+    Extract text \(I_{i,j,t}\) for Item \(i\) of institution \(j\) at time \(t\)\;
+    Split \(I_{i,j,t}\) into semantic chunks using a semantic chunker\;
+    Build a topic model \(T\) using BERTopic\;
+    Run hierarchical clustering on \(T\) to reduce the dimensionality of topics\;
+    Create topic distributions \(D_{i,j,t}\) (as percentages, not counts) per chunk\;
+}
+
+\For{each institution \(j\)}{
+    Aggregate \(D_{i,j,t}\) across years to create temporal vectors\;
+    Standardize distributions using a robust scaler\;
+    Apply PCA to reduce dimensionality while retaining 95\% variance\;
+    Apply KMeans clustering to determine \(k\), the optimal number of clusters, using silhouette scores\;
+    Test for multivariate normality of the PCA-reduced vectors\;
+    
+    \eIf{normality is \textbf{True}}{
+        Apply robust Mahalanobis distance using Minimum Covariance Determinant (MCD)\;
+        Apply Local Outlier Factor (LOF)\;
+        Flag outliers if identified by more than one method\;
+    }{
+        Apply only LOF for outlier detection\;
+    }
+}
+
+\If{the topic order is relevant (e.g., Risk Factors)}{
+    Create weighted topic distributions \(W_{i,j,t}\) based on the order of discussion\;
+}
+
+Normalize final scores to account for holding company size (e.g., total assets)\;
+
+Convert outlier detection and clustering results into continuous scores for risk assessment\;
+
+\caption{Topic Distribution and Outlier Detection Algorithm}
+\end{algorithm}
+
+\end{document}
