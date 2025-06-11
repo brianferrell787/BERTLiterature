@@ -36,24 +36,27 @@ original_xml_bytes = xml_string.encode('utf-8')
 original_xml_etree = ET.fromstring(original_xml_bytes)
 
 # Recursive function to generate editable tree UI with DeepSearch
-def create_tree(data, search_term="", parent_key="", default_open=False):
+def create_tree(data, search_term="", parent_key=""):
     flat_data = DeepSearch(data, search_term, verbose_level=2).get("values_changed", {}) if search_term else {}
 
     def match_key(id_):
         return any(id_ in key for key in flat_data)
 
     items = []
+    titles = []
     for key, value in data.items():
         item_id = f"{parent_key}.{key}" if parent_key else key
         if isinstance(value, dict):
-            nested = create_tree(value, search_term, item_id, default_open)
+            nested, _ = create_tree(value, search_term, item_id)
             if nested:
                 items.append(dbc.AccordionItem(nested, title=key))
+                titles.append(key)
         elif isinstance(value, list):
             for idx, elem in enumerate(value):
-                nested = create_tree(elem, search_term, f"{item_id}[{idx}]", default_open)
+                nested, _ = create_tree(elem, search_term, f"{item_id}[{idx}]")
                 if nested:
                     items.append(dbc.AccordionItem(nested, title=f"{key} [{idx}]"))
+                    titles.append(f"{key} [{idx}]")
         else:
             if not search_term or match_key(item_id):
                 items.append(
@@ -66,8 +69,9 @@ def create_tree(data, search_term="", parent_key="", default_open=False):
                         title=key
                     )
                 )
+                titles.append(key)
 
-    return dbc.Accordion(items, always_open=True, active_item=list(range(len(items))) if default_open else []) if items else None
+    return items, titles
 
 # Function to update XML dict from inputs
 def update_dict_from_inputs(xml_dict, inputs):
@@ -102,8 +106,9 @@ app.layout = dbc.Container([
         dbc.Button("Expand All", id="expand-btn", color="success", className="me-2"),
         dbc.Button("Collapse All", id="collapse-btn", color="secondary")
     ], className="mb-2"),
-    dcc.Store(id="accordion-open-state", data=False),
+    dcc.Store(id="accordion-open-state", data=[]),
     dcc.Input(id="search-input", placeholder="Search XML...", debounce=True, className="mb-3"),
+    dcc.Store(id="accordion-titles", data=[]),
     html.Div(id="version-container", className="mb-3"),
     dbc.Row([
         dbc.Col(html.Div(id="xml-container"), width=6),
@@ -115,24 +120,26 @@ app.layout = dbc.Container([
     Output("accordion-open-state", "data"),
     Input("expand-btn", "n_clicks"),
     Input("collapse-btn", "n_clicks"),
+    State("accordion-titles", "data"),
     prevent_initial_call=True
 )
-def update_expand_state(expand_clicks, collapse_clicks):
+def toggle_accordion(expand, collapse, titles):
     triggered = ctx.triggered_id
-    return True if triggered == "expand-btn" else False
+    return list(range(len(titles))) if triggered == "expand-btn" else []
 
 @app.callback(
     Output("version-container", "children"),
     Output("xml-container", "children"),
     Output("diff-container", "children"),
+    Output("accordion-titles", "data"),
     Input("save-btn", "n_clicks"),
     Input("revert-btn", "n_clicks"),
     Input("search-input", "value"),
-    Input("accordion-open-state", "data"),
+    State("accordion-open-state", "data"),
     State({"type": "input", "index": ALL}, "id"),
     State({"type": "input", "index": ALL}, "value"),
 )
-def update_tree(save_clicks, revert_clicks, search, expand_state, input_ids, input_values):
+def update_tree(save_clicks, revert_clicks, search, active_items, input_ids, input_values):
     global current_xml_dict
     trigger = ctx.triggered_id
 
@@ -144,55 +151,52 @@ def update_tree(save_clicks, revert_clicks, search, expand_state, input_ids, inp
         update_dict_from_inputs(current_xml_dict, inputs_dict)
 
     version_display = html.Div(f"Last saved: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    tree_display = create_tree(current_xml_dict, search_term=search or "", default_open=expand_state)
+    items, titles = create_tree(current_xml_dict, search_term=search or "")
+    tree_display = dbc.Accordion(items, always_open=True, active_item=active_items)
 
-    diff_display = [html.Div("No changes from the original.", className="text-muted")]
-    if trigger in ["save-btn", "revert-btn"]:
-        current_xml_str = xmltodict.unparse(current_xml_dict)
-        current_xml_bytes = current_xml_str.encode('utf-8')
-        current_etree = ET.fromstring(current_xml_bytes)
+    current_xml_str = xmltodict.unparse(current_xml_dict)
+    current_xml_bytes = current_xml_str.encode('utf-8')
+    current_etree = ET.fromstring(current_xml_bytes)
+    diffs = xmldiff.main.diff_trees(original_xml_etree, current_etree)
 
-        diffs = xmldiff.main.diff_trees(original_xml_etree, current_etree)
-        elements = []
+    diff_display = []
+    for diff in diffs:
+        if isinstance(diff, (actions.UpdateTextIn, actions.UpdateAttrib, actions.InsertNode, actions.DeleteNode)):
+            tooltip = f"XPath: {diff.node}" + (f" | Attribute: {getattr(diff, 'name', '')}" if hasattr(diff, 'name') else "")
+            if isinstance(diff, actions.UpdateTextIn):
+                old_node = original_xml_etree.xpath(diff.node)
+                old_text = old_node[0].text if old_node else "<unknown>"
+                diff_display.append(html.Div([
+                    html.Code("Field", title=tooltip),
+                    html.Div(["Before: ", html.Span(old_text, className="old")]),
+                    html.Div(["After: ", html.Span(diff.text, className="new")]),
+                    html.Hr()
+                ]))
+            elif isinstance(diff, actions.UpdateAttrib):
+                old_node = original_xml_etree.xpath(diff.node)
+                old_attr = old_node[0].attrib.get(diff.name, "<unknown>") if old_node else "<unknown>"
+                diff_display.append(html.Div([
+                    html.Code("Attribute", title=tooltip),
+                    html.Div(["Before: ", html.Span(old_attr, className="old")]),
+                    html.Div(["After: ", html.Span(diff.value, className="new")]),
+                    html.Hr()
+                ]))
+            elif isinstance(diff, actions.InsertNode):
+                diff_display.append(html.Div([
+                    html.Div(["Inserted Node: ", html.Code(diff.tag)]),
+                    html.Div(["At: ", html.Span(diff.node)]),
+                    html.Hr()
+                ]))
+            elif isinstance(diff, actions.DeleteNode):
+                diff_display.append(html.Div([
+                    html.Div(["Deleted Node: ", html.Code(diff.tag)]),
+                    html.Div(["From: ", html.Span(diff.node)]),
+                    html.Hr()
+                ]))
+    if not diff_display:
+        diff_display = [html.Div("No changes from the original.", className="text-muted")]
 
-        for diff in diffs:
-            if isinstance(diff, (actions.UpdateTextIn, actions.UpdateAttrib, actions.InsertNode, actions.DeleteNode)):
-                field_label = diff.node.split('/')[-1] or diff.node
-                tooltip = f"XPath: {diff.node}" + (f" | Attribute: {getattr(diff, 'name', '')}" if hasattr(diff, 'name') else "")
-                if isinstance(diff, actions.UpdateTextIn):
-                    old_node = original_xml_etree.xpath(diff.node)
-                    old_text = old_node[0].text if old_node else "<unknown>"
-                    elements.append(html.Div([
-                        html.Div([html.Strong("Field: "), html.Code(field_label, title=tooltip)]),
-                        html.Div(["Before: ", html.Span(old_text, style={"backgroundColor": "#ffe6e6"})]),
-                        html.Div(["After: ", html.Span(diff.text, style={"backgroundColor": "#e6ffe6"})]),
-                        html.Hr()
-                    ]))
-                elif isinstance(diff, actions.UpdateAttrib):
-                    old_node = original_xml_etree.xpath(diff.node)
-                    old_attr = old_node[0].attrib.get(diff.name, "<unknown>") if old_node else "<unknown>"
-                    elements.append(html.Div([
-                        html.Div([html.Strong("Attribute: "), html.Code(diff.name, title=tooltip)]),
-                        html.Div(["Before: ", html.Span(old_attr, style={"backgroundColor": "#ffe6e6"})]),
-                        html.Div(["After: ", html.Span(diff.value, style={"backgroundColor": "#e6ffe6"})]),
-                        html.Hr()
-                    ]))
-                elif isinstance(diff, actions.InsertNode):
-                    elements.append(html.Div([
-                        html.Div([html.Strong("Inserted: "), html.Code(diff.tag, title=tooltip)]),
-                        html.Div(["At: ", html.Span(diff.node)]),
-                        html.Hr()
-                    ]))
-                elif isinstance(diff, actions.DeleteNode):
-                    elements.append(html.Div([
-                        html.Div([html.Strong("Deleted: "), html.Code(diff.tag, title=tooltip)]),
-                        html.Div(["From: ", html.Span(diff.node)]),
-                        html.Hr()
-                    ]))
-
-        diff_display = [html.Div([html.H5("Changes from Original:"), html.Div(elements)])] if elements else diff_display
-
-    return version_display, tree_display or html.Div("No matching content.", className="text-muted"), diff_display
+    return version_display, tree_display, diff_display, titles
 
 @app.callback(
     Output("download-diff", "data"),
