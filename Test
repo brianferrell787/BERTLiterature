@@ -1,0 +1,219 @@
+import dash
+import dash_bootstrap_components as dbc
+from dash import html, dcc, Input, Output, State, ALL, ctx
+import xmltodict
+import copy
+import datetime
+import re
+import xmldiff.main
+from xmldiff import actions
+import lxml.etree as ET
+from deepdiff import DeepSearch
+
+# Example XML data
+xml_string = """
+<configuration>
+    <server>
+        <host>localhost</host>
+        <port>8080</port>
+        <database>
+            <name>config_db</name>
+            <user>admin</user>
+        </database>
+    </server>
+    <features>
+        <feature enabled=\"true\">Logging</feature>
+        <feature enabled=\"false\">Debug Mode</feature>
+        <feature enabled=\"true\">Security</feature>
+    </features>
+</configuration>
+"""
+
+# Parse XML into dictionary
+original_xml_dict = xmltodict.parse(xml_string)
+current_xml_dict = copy.deepcopy(original_xml_dict)
+original_xml_bytes = xml_string.encode('utf-8')
+original_xml_etree = ET.fromstring(original_xml_bytes)
+
+# Recursive function to generate editable tree UI with DeepSearch
+def create_tree(data, search_term="", parent_key="", default_open=False):
+    flat_data = DeepSearch(data, search_term, verbose_level=2).get("values_changed", {}) if search_term else {}
+
+    def match_key(id_):
+        return any(id_ in key for key in flat_data)
+
+    items = []
+    for key, value in data.items():
+        item_id = f"{parent_key}.{key}" if parent_key else key
+        if isinstance(value, dict):
+            nested = create_tree(value, search_term, item_id, default_open)
+            if nested:
+                items.append(dbc.AccordionItem(nested, title=key))
+        elif isinstance(value, list):
+            for idx, elem in enumerate(value):
+                nested = create_tree(elem, search_term, f"{item_id}[{idx}]", default_open)
+                if nested:
+                    items.append(dbc.AccordionItem(nested, title=f"{key} [{idx}]"))
+        else:
+            if not search_term or match_key(item_id):
+                items.append(
+                    dbc.AccordionItem(
+                        dcc.Textarea(
+                            value=value,
+                            style={"width": "100%", "minHeight": "40px", "resize": "vertical"},
+                            id={"type": "input", "index": item_id}
+                        ),
+                        title=key
+                    )
+                )
+
+    return dbc.Accordion(items, always_open=True, active_item=list(range(len(items))) if default_open else []) if items else None
+
+# Function to update XML dict from inputs
+def update_dict_from_inputs(xml_dict, inputs):
+    for input_id, input_value in inputs.items():
+        keys = re.split(r'\.(?![^\[]*\])', input_id)
+        d = xml_dict
+        for key in keys[:-1]:
+            list_match = re.match(r"(\w+)\[(\d+)\]", key)
+            if list_match:
+                list_key, idx = list_match.groups()
+                d = d[list_key][int(idx)]
+            else:
+                d = d[key]
+        last_key = keys[-1]
+        list_match = re.match(r"(\w+)\[(\d+)\]", last_key)
+        if list_match:
+            list_key, idx = list_match.groups()
+            d[list_key][int(idx)] = input_value
+        else:
+            d[last_key] = input_value
+
+# Dash app setup
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+
+app.layout = dbc.Container([
+    html.H2("XML Configuration Editor"),
+    dbc.Button("Save as New Version", id="save-btn", color="primary", className="mb-3"),
+    dbc.Button("Revert to Original", id="revert-btn", color="danger", className="mb-3 ms-2"),
+    dbc.Button("Export HTML Changelog", id="export-btn", color="secondary", className="mb-3 ms-2"),
+    dcc.Download(id="download-diff"),
+    html.Div([
+        dbc.Button("Expand All", id="expand-btn", color="success", className="me-2"),
+        dbc.Button("Collapse All", id="collapse-btn", color="secondary")
+    ], className="mb-2"),
+    dcc.Store(id="accordion-open-state", data=False),
+    dcc.Input(id="search-input", placeholder="Search XML...", debounce=True, className="mb-3"),
+    html.Div(id="version-container", className="mb-3"),
+    dbc.Row([
+        dbc.Col(html.Div(id="xml-container"), width=6),
+        dbc.Col(html.Div(id="diff-container"), width=6)
+    ])
+], fluid=True, className="p-4")
+
+@app.callback(
+    Output("accordion-open-state", "data"),
+    Input("expand-btn", "n_clicks"),
+    Input("collapse-btn", "n_clicks"),
+    prevent_initial_call=True
+)
+def update_expand_state(expand_clicks, collapse_clicks):
+    triggered = ctx.triggered_id
+    return True if triggered == "expand-btn" else False
+
+@app.callback(
+    Output("version-container", "children"),
+    Output("xml-container", "children"),
+    Output("diff-container", "children"),
+    Input("save-btn", "n_clicks"),
+    Input("revert-btn", "n_clicks"),
+    Input("search-input", "value"),
+    Input("accordion-open-state", "data"),
+    State({"type": "input", "index": ALL}, "id"),
+    State({"type": "input", "index": ALL}, "value"),
+)
+def update_tree(save_clicks, revert_clicks, search, expand_state, input_ids, input_values):
+    global current_xml_dict
+    trigger = ctx.triggered_id
+
+    if trigger == "revert-btn":
+        current_xml_dict = copy.deepcopy(original_xml_dict)
+
+    if trigger == "save-btn":
+        inputs_dict = {input_id['index']: value for input_id, value in zip(input_ids, input_values)}
+        update_dict_from_inputs(current_xml_dict, inputs_dict)
+
+    version_display = html.Div(f"Last saved: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    tree_display = create_tree(current_xml_dict, search_term=search or "", default_open=expand_state)
+
+    diff_display = [html.Div("No changes from the original.", className="text-muted")]
+    if trigger in ["save-btn", "revert-btn"]:
+        current_xml_str = xmltodict.unparse(current_xml_dict)
+        current_xml_bytes = current_xml_str.encode('utf-8')
+        current_etree = ET.fromstring(current_xml_bytes)
+
+        diffs = xmldiff.main.diff_trees(original_xml_etree, current_etree)
+        elements = []
+
+        for diff in diffs:
+            if isinstance(diff, (actions.UpdateTextIn, actions.UpdateAttrib, actions.InsertNode, actions.DeleteNode)):
+                field_label = diff.node.split('/')[-1] or diff.node
+                tooltip = f"XPath: {diff.node}" + (f" | Attribute: {getattr(diff, 'name', '')}" if hasattr(diff, 'name') else "")
+                if isinstance(diff, actions.UpdateTextIn):
+                    old_node = original_xml_etree.xpath(diff.node)
+                    old_text = old_node[0].text if old_node else "<unknown>"
+                    elements.append(html.Div([
+                        html.Div([html.Strong("Field: "), html.Code(field_label, title=tooltip)]),
+                        html.Div(["Before: ", html.Span(old_text, style={"backgroundColor": "#ffe6e6"})]),
+                        html.Div(["After: ", html.Span(diff.text, style={"backgroundColor": "#e6ffe6"})]),
+                        html.Hr()
+                    ]))
+                elif isinstance(diff, actions.UpdateAttrib):
+                    old_node = original_xml_etree.xpath(diff.node)
+                    old_attr = old_node[0].attrib.get(diff.name, "<unknown>") if old_node else "<unknown>"
+                    elements.append(html.Div([
+                        html.Div([html.Strong("Attribute: "), html.Code(diff.name, title=tooltip)]),
+                        html.Div(["Before: ", html.Span(old_attr, style={"backgroundColor": "#ffe6e6"})]),
+                        html.Div(["After: ", html.Span(diff.value, style={"backgroundColor": "#e6ffe6"})]),
+                        html.Hr()
+                    ]))
+                elif isinstance(diff, actions.InsertNode):
+                    elements.append(html.Div([
+                        html.Div([html.Strong("Inserted: "), html.Code(diff.tag, title=tooltip)]),
+                        html.Div(["At: ", html.Span(diff.node)]),
+                        html.Hr()
+                    ]))
+                elif isinstance(diff, actions.DeleteNode):
+                    elements.append(html.Div([
+                        html.Div([html.Strong("Deleted: "), html.Code(diff.tag, title=tooltip)]),
+                        html.Div(["From: ", html.Span(diff.node)]),
+                        html.Hr()
+                    ]))
+
+        diff_display = [html.Div([html.H5("Changes from Original:"), html.Div(elements)])] if elements else diff_display
+
+    return version_display, tree_display or html.Div("No matching content.", className="text-muted"), diff_display
+
+@app.callback(
+    Output("download-diff", "data"),
+    Input("export-btn", "n_clicks"),
+    prevent_initial_call=True
+)
+def export_diff(n):
+    current_xml_str = xmltodict.unparse(current_xml_dict, pretty=True)
+    html_report = f"""
+    <html><head><style>
+    body {{ font-family: sans-serif; }}
+    span.old {{ background-color: #ffe6e6; }}
+    span.new {{ background-color: #e6ffe6; }}
+    code {{ font-family: monospace; }}
+    hr {{ border-top: 1px dashed #ccc; }}
+    </style></head><body>
+    <h2>XML Configuration Diff</h2>
+    <pre>{current_xml_str}</pre>
+    </body></html>
+    """
+    return dict(content=html_report, filename="changelog.html")
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
